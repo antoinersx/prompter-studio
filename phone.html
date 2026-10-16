@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Prompter">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="data:,">
+<title>Prompter Studio · Phone</title>
+<style>
+  :root {
+    --accent: #ffcf5a; --rec: #ff4d4d; --ok: #4cc38a; --panel: rgba(18,19,22,.96); --line: #2a2d33; --dim: #9aa0a8;
+    --safe-t: env(safe-area-inset-top, 0px); --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: #000; color: #fff; overflow: hidden; overscroll-behavior: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; touch-action: manipulation; }
+  #stage { position: fixed; inset: 0; }
+  #preview { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
+  #preview.mirror { transform: scaleX(-1); }
+  /* text-only (selfie monitor / mirror rig): camera shows faintly for framing, hidden while recording */
+  body.textonly #preview { opacity: .35; }
+  body.textonly.recording #preview { opacity: 0; }
+
+  /* prompter */
+  #prompter { position: absolute; left: 0; right: 0; top: 0; height: var(--ph, 42%); overflow: hidden; z-index: 3;
+    background: linear-gradient(rgba(0,0,0,.82), rgba(0,0,0,.72) 75%, rgba(0,0,0,0)); }
+  body.textonly #prompter { background: rgba(0,0,0,.55); height: calc(100% - 128px - var(--safe-b)); }
+  body.textonly.recording #prompter { background: #000; }
+  #flip { position: absolute; inset: 0; padding-top: var(--safe-t); }
+  #flip.mirror { transform: scaleX(-1); }
+  #script { position: absolute; left: 0; right: 0; margin: 0 auto; width: 90%; will-change: transform; padding-bottom: 60vh; line-height: 1.28; font-weight: 600; }
+  .para { margin: 0 0 .8em; }
+  .sec { font-size: .34em; letter-spacing: .14em; text-transform: uppercase; color: #8b919a; margin: 1.4em 0 .4em; font-weight: 700; }
+  .w { color: #fff; transition: color .2s; }
+  .w.done { color: #6b7078; }
+  .w.cur { color: var(--accent); }
+  .w.em { text-decoration: underline; text-decoration-thickness: .07em; text-underline-offset: .14em; }
+  .w.cue { font-size: .4em; letter-spacing: .08em; text-transform: uppercase; color: #5fa8ff; font-weight: 700; vertical-align: middle; }
+  #readline { position: absolute; left: 0; right: 0; height: 0; pointer-events: none; }
+  #readline::before { content: ""; position: absolute; left: 0; top: -11px; border: 11px solid transparent; border-left: 16px solid var(--accent); }
+
+  /* hud */
+  #hud { position: absolute; z-index: 7; left: 0; right: 0; bottom: calc(102px + var(--safe-b)); display: flex; justify-content: space-between; align-items: center; padding: 0 14px; font: 600 14px ui-monospace, Menlo, monospace; pointer-events: none; }
+  #state { color: #ddd; background: rgba(0,0,0,.45); padding: 3px 8px; border-radius: 6px; }
+  #state.hold { color: var(--accent); }
+  #recpill { display: none; color: #fff; background: var(--rec); padding: 3px 9px; border-radius: 6px; }
+  body.recording #recpill { display: inline-block; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #444; margin-right: 6px; vertical-align: 1px; }
+  .dot.on { background: var(--ok); } .dot.heard { background: var(--accent); }
+
+  /* controls */
+  #controls { position: absolute; z-index: 8; left: 0; right: 0; bottom: 0; padding: 14px 18px calc(14px + var(--safe-b));
+    display: flex; align-items: center; justify-content: space-between; background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,.6)); }
+  .cbtn { width: 56px; height: 56px; border-radius: 50%; border: 0; background: rgba(30,32,36,.82); color: #fff; font: 600 11px -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+  .cbtn b { font-size: 20px; line-height: 1; }
+  .cbtn:active { transform: scale(.94); }
+  #rec { width: 78px; height: 78px; border-radius: 50%; border: 5px solid #fff; background: transparent; display: flex; align-items: center; justify-content: center; }
+  #rec i { width: 58px; height: 58px; border-radius: 50%; background: var(--rec); transition: all .2s; }
+  body.recording #rec i { width: 30px; height: 30px; border-radius: 7px; }
+  body.recording .rec-only, body:not(.recording) .idle-only { }
+  #count { position: absolute; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; font: 800 30vw -apple-system, sans-serif; color: var(--rec); background: rgba(0,0,0,.45); pointer-events: none; }
+
+  /* sheets */
+  .sheet { position: absolute; z-index: 30; left: 0; right: 0; bottom: 0; max-height: 92%; overflow: auto; background: var(--panel); border-top-left-radius: 18px; border-top-right-radius: 18px;
+    padding: 16px 16px calc(18px + var(--safe-b)); transform: translateY(105%); transition: transform .25s ease; -webkit-overflow-scrolling: touch; }
+  .sheet.open { transform: none; }
+  .sheet h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); margin: 14px 0 8px; }
+  .sheet h2:first-child { margin-top: 0; }
+  .grab { width: 40px; height: 5px; border-radius: 3px; background: #444; margin: 0 auto 12px; }
+  textarea { width: 100%; height: 34vh; background: #0b0c0e; color: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px; font: 16px/1.45 -apple-system, sans-serif; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+  .btn { border: 1px solid #3a3e45; background: #23262b; color: #fff; border-radius: 10px; padding: 11px 14px; font: 600 15px -apple-system, sans-serif; }
+  .btn.primary { background: var(--accent); color: #141414; border-color: var(--accent); }
+  .btn.danger { background: var(--rec); border-color: var(--rec); }
+  .btn.grow { flex: 1; }
+  .seg { display: inline-flex; border: 1px solid #3a3e45; border-radius: 10px; overflow: hidden; }
+  .seg button { border: 0; background: transparent; color: var(--dim); padding: 10px 12px; font: 600 14px -apple-system, sans-serif; }
+  .seg button.on { background: var(--accent); color: #141414; }
+  label.l { display: block; color: var(--dim); font-size: 13px; margin: 10px 0 4px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  select { width: 100%; background: #0b0c0e; color: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px; font: 16px -apple-system, sans-serif; }
+  .hint { color: var(--dim); font-size: 13px; line-height: 1.4; }
+  .stats { color: var(--dim); font: 13px ui-monospace, Menlo, monospace; }
+  #toast { position: absolute; z-index: 40; left: 14px; right: 14px; bottom: calc(140px + var(--safe-b)); background: rgba(20,22,25,.95); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 14px; display: none; }
+  #toast.warn { border-color: var(--rec); }
+  #markers { font: 12px ui-monospace, Menlo, monospace; color: var(--dim); max-height: 22vh; overflow: auto; }
+  #start { position: absolute; z-index: 25; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: #000; padding: 24px; text-align: center; }
+  #start h1 { font-size: 24px; margin: 0; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <video id="preview" playsinline muted autoplay></video>
+
+  <div id="prompter"><div id="flip"><div id="script"></div><div id="readline"></div></div></div>
+
+  <div id="hud"><span id="state">MANUAL · PAUSED</span><span><span id="recpill">● <span id="rectime">0:00</span></span> <span id="voice"><span class="dot" id="vdot"></span></span></span></div>
+
+  <div id="controls">
+    <button class="cbtn" id="bScript"><b>✎</b>Script</button>
+    <button class="cbtn" id="bRetake"><b>↺</b>Retake</button>
+    <button id="rec" aria-label="Record"><i></i></button>
+    <button class="cbtn" id="bHold"><b>❚❚</b><span id="holdLbl">Pause</span></button>
+    <button class="cbtn" id="bKeep"><b>★</b>Keep</button>
+  </div>
+  <div id="count"></div>
+  <div id="toast"></div>
+
+  <!-- setup sheet -->
+  <div class="sheet" id="setup">
+    <div class="grab"></div>
+    <h2>Script</h2>
+    <textarea id="text" spellcheck="false" placeholder="Paste your script.
+
+# Section titles are shown small
+[CUES] are never read
+*word* is underlined"></textarea>
+    <div class="row">
+      <button class="btn primary" id="bFormat">✨ Format</button>
+      <button class="btn" id="bUndo" disabled>Undo</button>
+      <button class="btn" id="bLoad">Load file</button>
+      <input type="file" id="file" accept=".txt,.md,text/plain,text/markdown" hidden>
+      <span class="stats" id="wc"></span>
+    </div>
+    <h2>Scroll</h2>
+    <div class="row"><div class="seg" id="mode"><button data-v="voice">Voice follow</button><button data-v="manual">Manual</button></div></div>
+    <label class="l">Manual speed <span id="spv"></span></label><input type="range" id="speed" min="10" max="250">
+    <h2>Camera</h2>
+    <div class="row"><div class="seg" id="facing"><button data-v="user">Front (selfie)</button><button data-v="environment">Back</button></div></div>
+    <div class="row"><div class="seg" id="layout"><button data-v="top">Text over camera</button><button data-v="textonly">Text only</button></div></div>
+    <p class="hint">“Text only” is for a wireless selfie monitor or a mirror prompter: the screen shows only the script, the camera keeps recording behind it.</p>
+    <label class="l">Quality</label>
+    <select id="quality"><option value="1080">1080p · 6 Mbps (about 45 MB per minute)</option><option value="1080hi">1080p · 10 Mbps (about 75 MB per minute)</option><option value="720">720p · 3.5 Mbps (about 26 MB per minute)</option></select>
+    <h2>Text</h2>
+    <label class="l">Size <span id="fsv"></span></label><input type="range" id="font" min="22" max="72">
+    <label class="l">Prompter height <span id="phv"></span></label><input type="range" id="ph" min="25" max="100">
+    <label class="l">Reading line <span id="rlv"></span></label><input type="range" id="rl" min="10" max="60">
+    <div class="row"><label><input type="checkbox" id="mirror"> Mirror text</label></div>
+    <label class="l">Speech language</label>
+    <select id="lang"><option value="en-US">English (US)</option><option value="en-GB">English (UK)</option><option value="fr-FR">Français</option></select>
+    <div class="row" style="margin-top:14px"><button class="btn primary grow" id="bDone">Done</button></div>
+    <p class="hint">Keyboard and Bluetooth remotes: Space pause/hold · R or Page Up retake · K keep · ↑/↓ or Page Down sentence · Shift+Enter record.</p>
+  </div>
+
+  <!-- save sheet -->
+  <div class="sheet" id="save">
+    <div class="grab"></div>
+    <h2>Take saved on this phone</h2>
+    <p class="stats" id="saveInfo"></p>
+    <div class="row"><button class="btn primary grow" id="bSaveVideo">Save video</button></div>
+    <div class="row"><button class="btn grow" id="bSaveAll">Save video + markers to Files</button></div>
+    <h2>Markers</h2>
+    <div id="markers"></div>
+    <div class="row" style="margin-top:14px"><button class="btn grow" id="bClose">Close</button></div>
+    <p class="hint">“Save video” opens the share sheet: choose “Save Video” for Photos. For editing with Claude, use “Save … to Files” and keep the files together in one folder.</p>
+  </div>
+
+  <div id="start">
+    <h1>Prompter Studio</h1>
+    <p class="hint">Phone mode: one camera, voice-following teleprompter.</p>
+    <button class="btn primary" id="bStart">Start camera</button>
+    <p class="hint" id="startHint"></p>
+  </div>
+</div>
+
+<script src="follow.js"></script>
+<script src="format.js"></script>
+<script src="parse.js"></script>
+<script src="phone.js"></script>
+</body>
+</html>

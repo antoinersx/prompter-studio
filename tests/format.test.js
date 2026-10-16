@@ -50,6 +50,14 @@ ok("abbreviations expanded", text.includes("for example,") && text.includes("ver
 ok("long sentence flagged", stats.longSentences.length === 1, JSON.stringify(stats.longSentences));
 ok("idempotent (formatting twice changes nothing)", formatScript(text, { maxChars: 30 }).text === text);
 
+console.log("numbers stay on one line");
+{
+  const out = formatScript("It costs $0 and it's 100% open source, and I made $10,400 last week with it.", { maxChars: 20 }).text;
+  const lines = out.trim().split("\n");
+  ok("'one hundred percent' not split", lines.some(l => l.includes("one hundred percent")), JSON.stringify(lines));
+  ok("'ten thousand four hundred dollars' not split mid-number", !lines.some(l => /^(hundred|thousand|dollars|percent)\b/.test(l)), JSON.stringify(lines));
+}
+
 console.log("follow matcher still lines up after formatting");
 {
   const { Follower, normalizePhrase } = require("../follow.js");

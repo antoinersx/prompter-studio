@@ -55,6 +55,18 @@ Each take gets its own folder:
 
 Not on a Mac? Run `python3 -m http.server 8765` in this folder and open `http://localhost:8765` in Google Chrome.
 
+## Phone mode (iPhone / Android)
+
+**[Open phone mode](https://antoinersx.github.io/prompter-studio/phone.html)** in Safari (iPhone) or Chrome (Android). One camera, the script on the same screen, the same voice follow, retake and keep markers.
+
+- **Text over camera:** front camera, script at the top of the screen next to the lens, so your eyes stay close to the camera.
+- **Text only:** for a wireless selfie monitor or a mirror prompter rig. The phone screen shows only the script (mirrored to the monitor); the back camera records behind it.
+- Tap the text to pause/hold, drag it to scroll back, **Retake** jumps to the start of the sentence. Bluetooth page-turner remotes work (Page Up = retake, Page Down = next sentence, Space = pause).
+- When you stop, **Save video** goes to Photos; **Save video + markers to Files** keeps everything for editing.
+- Add it to your Home Screen (Share → Add to Home Screen) for full-screen use.
+
+Phone browsers can only use one camera at a time; recording two phone cameras at once would need a native app. On iPhone, voice follow uses Safari's speech recognition, which needs Siri or Dictation turned on; if your phone can't run it while the camera records, use Manual scroll.
+
 ## Script markup
 
 ```
@@ -111,6 +123,7 @@ node tests/follow.test.js     # voice-follow matcher
 node tests/follow.stress.js   # 2,000-word script speed + random chatter
 node tests/format.test.js     # Format for prompter
 python3 tests/e2e.py          # full app in headless Chrome with two fake cameras (needs playwright)
+python3 tests/phone_e2e.py    # phone mode in an iPhone-sized viewport
 ```
 
 ## Built with Claude

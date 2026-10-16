@@ -145,6 +145,9 @@
   const PREP = new Set("to from with without into onto for about after before between through during over under against like than across around toward towards via by at on in of de du des avec pour dans sur sans".split(" "));
   const GLUE = new Set("the a an my your our their his her its this that these those to of in on at by for with from and or but is are was were be i we you they it he she not no very just so le la les un une des du de ce cette mon ton son".split(" "));
   const bare = w => w.toLowerCase().replace(/^[^a-z0-9à-ÿ]+|[^a-z0-9à-ÿ]+$/g, "");
+  const NUMW = new Set(("zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen " +
+    "eighteen nineteen twenty thirty forty fifty sixty seventy eighty ninety hundred thousand million billion trillion point percent dollars euros pounds cents").split(" "));
+  const isNum = w => w.split("-").every(p => NUMW.has(p));
 
   // penalty for breaking the line AFTER words[i]
   function breakPenalty(words, i) {
@@ -152,6 +155,9 @@
     if (/^\[.*\]$/.test(w) || /^\[/.test(nx || "")) return 0;           // cues stand alone
     if (/[,;:]["')*]*$/.test(w) || /[.!?…]["')*]*$/.test(w)) return 0;
     if (nx === "—" || w === "—") return 0.5;
+    if (isNum(bare(w)) && isNum(bare(nx || "")) && !/[,;:.!?]["')*]*$/.test(w))
+      return /^(thousand|million|billion|trillion)$/.test(bare(w)) ? 3 : 14;   // split a long number only after its scale word
+    if (!isNum(bare(w)) && isNum(bare(nx || ""))) return 2.5;              // good place: right before a number starts
     const b = bare(nx || "");
     if (CONJ.has(b)) return 1.5;
     if (PREP.has(b)) return 3;
