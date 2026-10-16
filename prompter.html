@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:,">
+<title>Prompter</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: none; }
+  body { color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; }
+  #flip { position: absolute; inset: 0; }
+  #flip.mirror { transform: scaleX(-1); }
+  #viewport { position: absolute; inset: 0; overflow: hidden; }
+  #script { position: absolute; left: 0; right: 0; margin: 0 auto; will-change: transform; padding-bottom: 80vh; }
+  .para { margin: 0 0 0.9em; }
+  .sec { font-size: 0.32em; letter-spacing: .14em; text-transform: uppercase; color: #6f7680; margin: 1.6em 0 0.5em; font-weight: 700; }
+  .w { color: #fff; transition: color .25s; }
+  .w.done { color: #5b5f66; }
+  .w.cur { color: #ffcf5a; }
+  .w.em { text-decoration: underline; text-decoration-thickness: 0.07em; text-underline-offset: 0.14em; }
+  .w.cue { font-size: 0.38em; letter-spacing: .08em; text-transform: uppercase; color: #5fa8ff; font-weight: 700; vertical-align: middle; }
+  .w.cue.done { color: #34506f; }
+  #readline { position: absolute; left: 0; right: 0; height: 0; pointer-events: none; }
+  #readline::before { content: ""; position: absolute; left: 0; top: -14px; border: 14px solid transparent; border-left: 22px solid #ffcf5a; }
+  #readline::after { content: ""; position: absolute; right: 0; top: -14px; border: 14px solid transparent; border-right: 22px solid #ffcf5a; }
+  #hud { position: absolute; top: 10px; right: 14px; display: flex; gap: 12px; align-items: center; font: 600 16px ui-monospace, Menlo, monospace; color: #aaa; z-index: 3; }
+  #hud .rec { display: none; color: #ff4d4d; }
+  #hud.recording .rec { display: inline; }
+  #hud .dot { width: 10px; height: 10px; border-radius: 50%; background: #333; display: inline-block; }
+  #hud .dot.on { background: #4cc38a; }
+  #hud .dot.heard { background: #ffcf5a; }
+  #state { position: absolute; top: 10px; left: 14px; font: 700 15px ui-monospace, Menlo, monospace; color: #aaa; z-index: 3; letter-spacing: .06em; }
+  #state.hold { color: #ffcf5a; }
+  #count { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; font: 800 28vh -apple-system, sans-serif; color: #ff4d4d; background: rgba(0,0,0,.55); z-index: 4; }
+  #help { position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; font: 14px -apple-system, sans-serif; color: #777; z-index: 3; }
+  #fade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(#000 0, rgba(0,0,0,0) 12%, rgba(0,0,0,0) 80%, #000 100%); z-index: 2; }
+</style>
+</head>
+<body>
+  <div id="flip">
+    <div id="viewport"><div id="script"></div></div>
+    <div id="fade"></div>
+    <div id="readline"></div>
+    <div id="state">MANUAL · PAUSED</div>
+    <div id="hud"><span class="rec">● <span id="recTime">00:00</span></span><span class="dot" id="dot"></span></div>
+    <div id="count"></div>
+    <div id="help">Drag this window onto the prompter screen, then press F for full screen.</div>
+  </div>
+</body>
+</html>

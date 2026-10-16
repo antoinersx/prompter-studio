@@ -1,0 +1,11 @@
+{
+  "name": "prompter-studio",
+  "version": "1.0.0",
+  "description": "Free teleprompter that follows your voice and records two cameras.",
+  "private": true,
+  "scripts": {
+    "start": "node serve.js 8765",
+    "test": "node tests/follow.test.js && node tests/follow.stress.js && node tests/format.test.js"
+  },
+  "license": "MIT"
+}

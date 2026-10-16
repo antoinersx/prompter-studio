@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prompter Studio</title>
+<style>
+  :root {
+    --bg: #0e0f11; --panel: #16181b; --line: #26292e; --text: #e8e6e1; --dim: #8b8f96;
+    --accent: #f2b33d; --rec: #ff4d4d; --ok: #4cc38a; --warn: #ffb020;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Inter", sans-serif; }
+  header { display: flex; align-items: center; gap: 16px; padding: 12px 20px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 5; }
+  header h1 { font-size: 15px; margin: 0; letter-spacing: .02em; }
+  .pill { font: 600 12px var(--mono); padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--dim); }
+  .pill.rec { color: #fff; background: var(--rec); border-color: var(--rec); }
+  .pill.saving { color: #111; background: var(--warn); border-color: var(--warn); }
+  .grow { flex: 1; }
+  .clock { font: 600 20px var(--mono); }
+  main { display: grid; grid-template-columns: minmax(380px, 1.1fr) minmax(420px, 1fr); gap: 16px; padding: 16px 20px 40px; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  section h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin: 0 0 10px; font-weight: 600; }
+  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  textarea { width: 100%; min-height: 46vh; resize: vertical; background: #0b0c0e; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 12px; font: 15px/1.55 -apple-system, sans-serif; }
+  label { color: var(--dim); font-size: 12px; display: block; margin-bottom: 4px; }
+  select, input[type=number], input[type=text] { width: 100%; background: #0b0c0e; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  button { background: #22262b; color: var(--text); border: 1px solid #343941; border-radius: 7px; padding: 8px 12px; font: 600 13px inherit; cursor: pointer; }
+  button:hover { border-color: #4a515b; }
+  button.primary { background: var(--accent); color: #141414; border-color: var(--accent); }
+  button.danger { background: var(--rec); border-color: var(--rec); color: #fff; }
+  button:disabled { opacity: .45; cursor: default; }
+  .row { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+  .row > * { flex: 1; min-width: 120px; }
+  .row > button { flex: 0 0 auto; }
+  .stats { display: flex; gap: 18px; color: var(--dim); font: 12px var(--mono); margin-top: 8px; flex-wrap: wrap; }
+  .cams { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cam { background: #000; border-radius: 8px; overflow: hidden; position: relative; aspect-ratio: 16/9; border: 1px solid var(--line); }
+  .cam video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cam .tag { position: absolute; left: 8px; top: 6px; font: 600 11px var(--mono); background: rgba(0,0,0,.6); padding: 2px 6px; border-radius: 4px; }
+  .cam .res { position: absolute; right: 8px; bottom: 6px; font: 11px var(--mono); background: rgba(0,0,0,.6); padding: 2px 6px; border-radius: 4px; color: var(--dim); }
+  .cam.bad { border-color: var(--rec); box-shadow: 0 0 0 2px var(--rec) inset; }
+  .meter { height: 8px; background: #0b0c0e; border-radius: 4px; overflow: hidden; border: 1px solid var(--line); margin-top: 6px; }
+  .meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ok), var(--warn) 75%, var(--rec)); transition: width 60ms linear; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .check { display: flex; gap: 8px; align-items: center; color: var(--text); font-size: 13px; margin: 0; }
+  .row > .seg { flex: 0 0 auto; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; background: transparent; color: var(--dim); }
+  .seg button.on { background: var(--accent); color: #141414; }
+  .bigbtns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .bigbtns button { padding: 12px 16px; font-size: 14px; }
+  #warnings:empty { display: none; }
+  #warnings { background: rgba(255,77,77,.12); border: 1px solid var(--rec); color: #ffd3d3; border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+  #warnings div + div { margin-top: 4px; }
+  #notice:empty { display: none; }
+  #notice { background: rgba(76,195,138,.12); border: 1px solid var(--ok); color: #cdeedd; border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 8px; }
+  .now { font-size: 16px; line-height: 1.5; min-height: 48px; }
+  .now .said { color: var(--dim); }
+  .now .next { color: var(--accent); }
+  .log { max-height: 180px; overflow: auto; font: 12px var(--mono); color: var(--dim); }
+  .log div { padding: 2px 0; border-bottom: 1px dashed #22252a; }
+  .log b { color: var(--text); font-weight: 600; }
+  .keys { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
+  .keys kbd { justify-self: start; align-self: start; font: 600 12px var(--mono); background: #0b0c0e; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; color: var(--text); white-space: nowrap; }
+  .keys span { color: var(--dim); }
+  .hint { color: var(--dim); font-size: 12px; margin-top: 6px; }
+  .folder { font: 12px var(--mono); color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .speechdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #333; margin-right: 6px; vertical-align: middle; }
+  .speechdot.on { background: var(--ok); }
+  .speechdot.heard { background: var(--accent); }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Prompter Studio</h1>
+  <span id="statePill" class="pill">READY</span>
+  <span class="clock" id="clock">00:00</span>
+  <span class="pill" id="sizePill" title="Recorded so far">0 MB</span>
+  <span class="grow"></span>
+  <span class="pill" id="modePill">MANUAL</span>
+  <span class="pill" id="speechPill"><span class="speechdot" id="speechDot"></span>voice off</span>
+</header>
+
+<main>
+  <div class="col">
+    <section>
+      <h2>Script</h2>
+      <textarea id="script" spellcheck="false" placeholder="Paste your script here.
+
+Blank line = new paragraph.
+A line starting with # is a section title (shown small, never read), e.g.
+# 1. Hook
+# 2. The strategy
+Press 1–9 while recording to jump to a section.
+
+[SHOW CHART] = cue, shown small in blue, never read.
+*word* = emphasis, underlined on the prompter.
+
+Then click ✨ Format for prompter."></textarea>
+      <div class="stats">
+        <span id="wordCount">0 words</span>
+        <span id="estRuntime">~0:00 at 150 wpm</span>
+        <span id="sectionCount">0 sections</span>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button id="formatBtn" class="primary" title="Breaks lines at natural phrases sized to your prompter, spells out numbers, removes markdown">✨ Format for prompter</button>
+        <button id="undoFormat" disabled>Undo</button>
+        <label class="check"><input type="checkbox" id="spell"> Spell out numbers &amp; symbols</label>
+      </div>
+      <div class="hint" id="formatHint">Line length follows the prompter's text size and width. Re-format after changing them.</div>
+      <div class="row" style="margin-top:10px">
+        <button id="loadFile">Load .txt / .md</button>
+        <input type="file" id="fileInput" accept=".txt,.md,text/plain,text/markdown" hidden>
+        <div><label>Words per minute (for time estimates)</label><input type="number" id="wpm" min="80" max="260" value="150"></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Live</h2>
+      <div id="notice"></div>
+      <div id="warnings"></div>
+      <div class="now" id="nowLine"><span class="said">Open the prompter to start.</span></div>
+      <div class="stats"><span id="progress">0%</span><span id="timeLeft"></span><span id="sectionNow"></span></div>
+    </section>
+
+    <section>
+      <h2>Markers this take</h2>
+      <div class="log" id="markerLog"><div>Retakes, keepers, re-says and section jumps show up here with their timecodes.</div></div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section>
+      <h2>Cameras and mic</h2>
+      <div class="row" style="margin-bottom:10px">
+        <button id="enableDevices" class="primary">Allow cameras and mic</button>
+        <span class="hint" id="deviceHint">Chrome will ask for permission once.</span>
+      </div>
+      <div class="grid3">
+        <div><label>Camera A (main)</label><select id="camA"></select></div>
+        <div><label>Camera B (second angle)</label><select id="camB"></select></div>
+        <div><label>Microphone</label><select id="mic"></select></div>
+      </div>
+      <div class="cams" style="margin-top:10px">
+        <div class="cam" id="boxA"><video id="prevA" muted playsinline autoplay></video><span class="tag">A</span><span class="res" id="resA"></span></div>
+        <div class="cam" id="boxB"><video id="prevB" muted playsinline autoplay></video><span class="tag">B</span><span class="res" id="resB"></span></div>
+      </div>
+      <div class="meter"><i id="meter"></i></div>
+      <div class="grid3" style="margin-top:10px">
+        <div><label>Resolution</label><select id="res"><option value="1920x1080">1080p</option><option value="3840x2160">4K (if camera supports)</option><option value="1280x720">720p</option></select></div>
+        <div><label>Frame rate</label><select id="fps"><option>30</option><option>25</option><option>60</option><option>24</option></select></div>
+        <div><label>Video bitrate (Mbps)</label><input type="number" id="bitrate" min="4" max="80" value="16"></div>
+      </div>
+      <div class="hint" id="usbHint">Plug each camera into its own USB port. Two cameras on one hub often drop frames.</div>
+    </section>
+
+    <section>
+      <h2>Prompter</h2>
+      <div class="row" style="margin-bottom:10px">
+        <div class="seg" id="modeSeg"><button data-mode="voice">Voice follow</button><button data-mode="manual">Manual scroll</button></div>
+        <button id="openPrompter" class="primary">Open prompter window</button>
+        <button id="placePrompter" title="Uses Chrome's window placement permission to put the prompter on the smallest screen">Put on prompter screen</button>
+      </div>
+      <div class="grid2">
+        <div><label>Text size <span id="fontVal"></span></label><input type="range" id="fontSize" min="28" max="120" value="60"></div>
+        <div><label>Text width <span id="widthVal"></span></label><input type="range" id="textWidth" min="50" max="100" value="88"></div>
+        <div><label>Reading line height <span id="lineVal"></span></label><input type="range" id="readLine" min="15" max="60" value="33"></div>
+        <div><label>Manual speed <span id="speedVal"></span></label><input type="range" id="speed" min="10" max="300" value="70"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="check"><input type="checkbox" id="mirror"> Mirror text</label>
+        <div><label>Speech language</label><select id="lang"><option value="en-US">English (US)</option><option value="en-GB">English (UK)</option><option value="fr-FR">Français</option></select></div>
+        <label class="check" title="Chrome's on-device speech, when your Chrome version has it. Falls back to Chrome's online speech if not."><input type="checkbox" id="onDevice"> On-device speech</label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Record</h2>
+      <div class="row" style="margin-bottom:10px">
+        <button id="pickFolder">Choose recordings folder</button>
+        <div class="folder" id="folderLabel">No folder chosen: files will download when you stop.</div>
+      </div>
+      <div class="row" style="margin-bottom:12px">
+        <div><label>Take name</label><input type="text" id="takeName" placeholder="e.g. memecoin-strategy"></div>
+      </div>
+      <div class="bigbtns">
+        <button id="recBtn" class="danger">● Start recording</button>
+        <button id="stopBtn" disabled>■ Stop and save</button>
+        <button id="repairBtn" title="Joins leftover .part files if Chrome or the Mac crashed mid-take">Repair a crashed take</button>
+      </div>
+      <div class="hint">Each take saves camA, camB and a separate mic file, plus markers, transcript and the script, in its own folder.</div>
+    </section>
+
+    <section>
+      <h2>Keys (work in both windows · map them on the Stream Deck)</h2>
+      <div class="keys">
+        <kbd>Space</kbd><span>Manual: pause / resume scroll. Voice: hold / release (freeze while you riff)</span>
+        <kbd>R</kbd><span>Retake: back to start of this sentence + bad-take marker (press twice = sentence before)</span>
+        <kbd>K</kbd><span>Keep: mark a joke or ad-lib you liked</span>
+        <kbd>↑ / ↓</kbd><span>Previous / next sentence &nbsp;·&nbsp; with Shift: paragraph</span>
+        <kbd>← / →</kbd><span>Manual speed slower / faster</span>
+        <kbd>1 – 9</kbd><span>Jump to section</span>
+        <kbd>V</kbd><span>Switch voice follow / manual</span>
+        <kbd>[ / ]</kbd><span>Text smaller / bigger</span>
+        <kbd>M</kbd><span>Mirror text</span>
+        <kbd>F</kbd><span>Full screen (press it inside the prompter window)</span>
+        <kbd>Shift+Enter</kbd><span>Start recording · press twice within 2 s to stop</span>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script src="follow.js"></script>
+<script src="format.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
