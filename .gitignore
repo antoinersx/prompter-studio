@@ -4,3 +4,4 @@ __pycache__/
 *.part*.mp4
 *.part*.webm
 *.part*.m4a
+.ps-launch-check
